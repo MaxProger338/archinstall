@@ -69,6 +69,9 @@ function formating {
 
     echo -e "Formating /dev/${disk}5 to ext4 (will be with label HOME)..."
     mkfs.ext4 "/dev/${disk}5" -L HOME
+
+    echo -e "${YELLOW}Generationg fstab...${NC}"
+    genfstab -L /mnt >> /mnt/etc/fstab
 }
 
 function mounting {
@@ -206,6 +209,63 @@ function packages {
     done	
 }
 
+function settime {
+	echo -e "${YELLOW}Time...${NC}"
+	region=""
+	city=""
+	echo -en "Enter the region: "
+	read region
+	echo -en "Enter the city: "
+	read city 
+	ln -sf "/usr/share/zoneinfo/${region}/${city}" /etc/localtime
+	hwclock --systohc
+	echo -e "${YELLOW}Enabling systemd-timesyncd...${NC}"
+	systemctl enable systemd-timesyncd
+}
+
+function locales {
+	echo -e "${YELLOW}Locales...${NC}"
+	vim /etc/locale.gen
+	echo -en "${YELLOW}Sure? ${NC}"
+	read
+	locale-gen
+	echo -en "${YELLOW}Enter system locale (for example en_US.UTF-8): ${NC}"
+	read systemlocale
+	echo "LANG=$systemlocale" > /etc/locale.conf
+}
+
+function optional {
+	echo -e "${YELLOW}Hostnaming...${NC}"
+	echo -en "${YELLOW}Enter hostname: ${NC}"
+	read hostname
+	echo "$hostname" > /etc/hostname
+}
+
+function user {
+	echo -e "${YELLOW}Set user...${NC}"
+	echo -en "${YELLOW}Enter user name: ${NC}"
+	read name
+	useradd -s /bin/bash -d "/home/${name}" -m $name
+	groupadd sudo
+	usermod -aG sudo,optical,storage,video,audio,users $user
+	passwd $user
+	EDITOR=vim visudo
+}
+
+function setgrub {
+	echo -e "${YELLOW}Grub setting...${NC}"
+        if [[ -z "${disk}" ]]; then
+            lsblk
+            echo "----------------------------------------------"
+            echo -n "Enter the disk: "
+            read disk
+            echo -en "Disk ${YELLOW}${disk}${NC}, sure? "
+            read
+       fi
+       grub-install "/dev/${disk}"
+       grub-mkconfig -o /boot/grub/grub.cfg
+}
+
 function exit_func {
     echo -e "${RED}Exit...${NC}"
     exit 0
@@ -219,16 +279,21 @@ while true; do
         exit 1
     fi
 
-    echo -e "${GREEN}╭─────────────────────────╮${NC}"
-    echo -e "${GREEN}│  1. Show part. layout   │${NC}"
-    echo -e "${GREEN}│  2. Partition           │${NC}"
-    echo -e "${GREEN}│  3. Formating           │${NC}"
-    echo -e "${GREEN}│  4. Mounting            │${NC}"
-    echo -e "${GREEN}│  5. Mirrors             │${NC}"
-    echo -e "${GREEN}│  6. Packages            │${NC}"
-    echo -e "${GREEN}│  0. Exit                │${NC}"
-    echo -e "${GREEN}╰─────────────────────────╯${NC}"
-    read -p "Enter choice [0-6]: " choice
+    echo -e "${GREEN}╭───────────────────────────╮${NC}"
+    echo -e "${GREEN}│  1.  Show part. layout    │${NC}"
+    echo -e "${GREEN}│  2.  Partition            │${NC}"
+    echo -e "${GREEN}│  3.  Formating            │${NC}"
+    echo -e "${GREEN}│  4.  Mounting             │${NC}"
+    echo -e "${GREEN}│  5.  Mirrors              │${NC}"
+    echo -e "${GREEN}│  6.  Packages             │${NC}"
+    echo -e "${GREEN}│  7.  Time                 │${NC}"
+    echo -e "${GREEN}│  8.  Locales              │${NC}"
+    echo -e "${GREEN}│  9.  Optional             │${NC}"
+    echo -e "${GREEN}│  10. User                 │${NC}"
+    echo -e "${GREEN}│  11. Grub                 │${NC}"
+    echo -e "${GREEN}│  0.  Exit                 │${NC}"
+    echo -e "${GREEN}╰───────────────────────────╯${NC}"
+    read -p "Enter choice [0-11]: " choice
 
     case $choice in
         1) show_partition_layout ;;
@@ -237,6 +302,11 @@ while true; do
         4) mounting ;;
         5) mirrors ;;
         6) packages ;;
+        7) settime ;;
+        8) locales ;;
+        9) optional ;;
+        10) user ;;
+        11) setgrub ;;
         0) exit_func ;;
         *) echo -e "${RED}❌ Error! Incorrect choice.${NC}" && sleep 1 ;;
     esac
