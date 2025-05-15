@@ -56,7 +56,7 @@ function formating {
     fi
   
     echo -e "Formating /dev/${disk}1 to fat32 (will be with label ESP)..."
-    mkfs.fat -F32 "/dev/${disk}1" -n ESP}
+    mkfs.fat -F32 "/dev/${disk}1" -n ESP
 
     echo -e "Formating /dev/${disk}2 to ext4 (will be with label BOOT)..."
     mkfs.ext4 "/dev/${disk}2" -L BOOT
@@ -69,9 +69,6 @@ function formating {
 
     echo -e "Formating /dev/${disk}5 to ext4 (will be with label HOME)..."
     mkfs.ext4 "/dev/${disk}5" -L HOME
-
-    echo -e "${YELLOW}Generationg fstab...${NC}"
-    genfstab -L /mnt >> /mnt/etc/fstab
 }
 
 function mounting {
@@ -104,7 +101,7 @@ function draw_menu {
     local current=$2
 
     clear
-    echo -e "\033[1mУправление: ↑/↓ - выбор, Enter - переключить, a - добавить, d - удалить, q - выход\033[0m"
+    echo -e "\033[Control: ↑/↓ - choice, Enter - switch, a - add, d - remove, q - quit\033[0m"
     echo
 
     for i in "${!items[@]}"; do
@@ -165,7 +162,7 @@ function packages {
 
     add_item() {
         echo -ne "\033[?25h"
-        read -p "Введите текст нового пункта: " new_item
+        read -p "Enter new package name: " new_item
         echo -ne "\033[?25l"
         menu_items+=("[+] $new_item")
         current_selection=$((${#menu_items[@]}-1))
@@ -201,12 +198,17 @@ function packages {
 		local packages_str=$(unprepare_items "${menu_items[@]}")
 		
 		echo -e "${YELLOW}$packages_str${NC}"
-		pacstrap -i /mnt "$packages_str"
+		pacstrap -i /mnt $packages_str
 
                 break
 		;;
         esac
     done	
+}
+
+function generate_fstab {
+    	echo -e "${YELLOW}Generationg fstab...${NC}"
+    	genfstab -L /mnt >> /mnt/etc/fstab
 }
 
 function settime {
@@ -247,8 +249,8 @@ function user {
 	read name
 	useradd -s /bin/bash -d "/home/${name}" -m $name
 	groupadd sudo
-	usermod -aG sudo,optical,storage,video,audio,users $user
-	passwd $user
+	usermod -aG sudo,optical,storage,video,audio,users $name
+	passwd $name
 	EDITOR=vim visudo
 }
 
@@ -280,20 +282,23 @@ while true; do
     fi
 
     echo -e "${GREEN}╭───────────────────────────╮${NC}"
+    echo -e "${GREEN}│  0.  Exit                 │${NC}"
     echo -e "${GREEN}│  1.  Show part. layout    │${NC}"
     echo -e "${GREEN}│  2.  Partition            │${NC}"
     echo -e "${GREEN}│  3.  Formating            │${NC}"
     echo -e "${GREEN}│  4.  Mounting             │${NC}"
     echo -e "${GREEN}│  5.  Mirrors              │${NC}"
     echo -e "${GREEN}│  6.  Packages             │${NC}"
-    echo -e "${GREEN}│  7.  Time                 │${NC}"
-    echo -e "${GREEN}│  8.  Locales              │${NC}"
-    echo -e "${GREEN}│  9.  Optional             │${NC}"
-    echo -e "${GREEN}│  10. User                 │${NC}"
-    echo -e "${GREEN}│  11. Grub                 │${NC}"
-    echo -e "${GREEN}│  0.  Exit                 │${NC}"
+    echo -e "${GREEN}│  7.  Generate fstab       │${NC}"
+    echo -e "${GREEN}│                           │${NC}"
+    echo -e "${GREEN}│────── Make in chroot ─────│${NC}"
+    echo -e "${GREEN}│  8.  Time                 │${NC}"
+    echo -e "${GREEN}│  9.  Locales              │${NC}"
+    echo -e "${GREEN}│  10. Optional             │${NC}"
+    echo -e "${GREEN}│  11. User                 │${NC}"
+    echo -e "${GREEN}│  12. Grub                 │${NC}"
     echo -e "${GREEN}╰───────────────────────────╯${NC}"
-    read -p "Enter choice [0-11]: " choice
+    read -p "Enter choice [0-12]: " choice
 
     case $choice in
         1) show_partition_layout ;;
@@ -303,10 +308,11 @@ while true; do
         5) mirrors ;;
         6) packages ;;
         7) settime ;;
-        8) locales ;;
-        9) optional ;;
-        10) user ;;
-        11) setgrub ;;
+        8) generate_fstab ;;
+        9) locales ;;
+        10) optional ;;
+        11) user ;;
+        12) setgrub ;;
         0) exit_func ;;
         *) echo -e "${RED}❌ Error! Incorrect choice.${NC}" && sleep 1 ;;
     esac
