@@ -307,8 +307,8 @@ while true; do
         4) mounting ;;
         5) mirrors ;;
         6) packages ;;
-        7) settime ;;
-        8) generate_fstab ;;
+        7) generate_fstab ;;
+        8) settime ;;
         9) locales ;;
         10) optional ;;
         11) user ;;
